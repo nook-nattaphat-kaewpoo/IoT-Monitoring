@@ -1,0 +1,725 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="UTF-8" meta name="viewport" content="width=device-width, initial-scale=1"> 
+	<title>バッテリ噴霧機耐久試験監視装置</title>
+	<style>
+ * { box-sizing:border-box; margin:0; padding:0; }
+ 		body {  width:100%; }
+		html { height:100%; width:100%; }
+
+		.container{
+			display: flex;
+			flex-direction: row;
+			flex-wrap: wrap;
+			justify-content: left;
+		}
+		.progress_bar {
+		height: 15px;
+		background: orange;
+		width: 1%;
+		-moz-transition: all 4s ease;
+		-moz-transition-delay: 1s;
+		-webkit-transition: all 4s ease;
+		-webkit-transition-delay: 1s;
+		transition: all 8s ease;
+		transition-delay: 1s;
+		}
+		.indicator_online {
+			background: #28B62C;
+			display: inline-block;
+			width: 1em;
+			height: 1em;
+			border-radius: 50%;
+			-webkit-animation: pulse-animation 2s infinite linear;
+		}
+		@-webkit-keyframes pulse-animation {
+			0% { -webkit-transform: scale(1); }
+			25% { -webkit-transform: scale(1); }
+			50% { -webkit-transform: scale(1.2) }
+			75% { -webkit-transform: scale(1); }
+			100% { -webkit-transform: scale(1); }
+		}
+		#canvasContainer{
+			display: flex;
+			flex-direction: row;
+			text-align: center;
+			width:100%;
+  			height: 100%;
+		}
+		#leftcolumn 
+		{
+		padding: 10px;
+		flex: 50%;
+		border-style: groove;
+		}
+		#rightcolumn
+		{
+		padding: 10px;
+		flex: 50%;
+		border-style: groove;
+		}	
+		#graph1, #graph2{
+			width: 100%;
+			height: 100%;
+		}	
+		
+		@media only screen and (max-width: 600px) {
+		#canvasContainer {
+			flex-direction: column;
+			}
+		img{
+			max-width: 100%;
+			height: auto;;
+		}
+		}
+		
+	</style>
+</head>
+
+<body onload="startTime()">
+<p><a href="https://testpumpgazerhtml.s3-ap-northeast-1.amazonaws.com/index.html"><abbr title="UFBウルトラポンプの稼働状態一覧">ホーム</abbr></a></p>	
+<p>
+	<span id="p_function_available">
+	この文章はブラウザ内部での処理中に表示されます。<br>
+	表示が続く場合、通信またはブラウザアプリケーションに何らかのエラーが起きている可能性があります。<br>
+	また、Internet Explorerには対応していないため、Microsoft Edgeを使用してください。<br>
+	</span>
+</p>
+<h2>バッテリ噴霧機耐久試験の監視</h2>
+<h3>計測値</h3>
+<p>
+	ＣＰＵ動作時間：<span id="p_live_time">--:--:--</span><br>
+	アワメータ値：　<span id="p_hour_meter">--:--:--</span><br>
+</p>
+<div id="canvasContainer">
+	<div id="leftcolumn">
+		<div>
+			<canvas id="graph1"></canvas><br>
+			<p>
+				モータ電流：　<span id="p_motor_current">-</span>[A]<br>
+				噴霧圧力：　　<span id="p_spray_pressure">-</span>[MPa]<br>
+			</p>
+		</div>
+	</div>
+	<div id="rightcolumn">
+		<div>
+			<canvas id="graph2"></canvas><br>
+			<p>
+				モータ温度：　<span id="p_motor_temperature">-</span>[℃]<br>
+				電源電圧：　　<span id="p_battery_voltage">-</span>[V]<br>
+			</p>
+		</div>
+	</div>
+</div><br>
+<h3>画像</h3>
+<div class="container">
+	<div>
+		<h4 align="center"><span id ="offline_online_cam1"></span> CAM1</h4>
+		<p align="center">Status CAM1: <span id="elapsed_check_status_cam1"></span></p><br>
+		<img id="cam1img" ><br>
+		<p align="center">
+			撮影時刻：<span id="p_capture_time_cam1">--:--:--</span><br>
+			<input type="button" value="最新画像を表示" onclick="still_camera_update(1, 0)" >
+	　　　　<input type="button" value="デバイス再起動" onclick="camera_device_reset_request(1)"><br>
+			<input type="date" id="date_cam1"> <input type="time" step="1" id="time_cam1"> 
+			<input type="button" value="指定日時の画像" onclick="still_camera_update_with_date(1)"><br>
+			<div id="progressBar1" class="progress_bar"></div>
+			<p id="status1"></p><br>	
+		</p>
+		<details>
+		<summary>Operating Time Details</summary>
+		<p>Lasted online : <span id="lasted_online_cam1"></span></p>
+		<p>Current Date Time : <span id="realDatetime_cam1"></span></p>
+		<p>Elapsed : <span id="elapsed_check_time_cam1"></span></p>
+		</details>
+	
+	</div>
+	<div>　　</div>
+	<div>
+		<h4 align="center"><span id ="offline_online_cam2"></span> CAM2</h4>
+		<p align="center">Status CAM2: </span><span id="elapsed_check_status_cam2" ></span></p><br>
+		<img id="cam2img" ><br>
+		<p align="center">
+			撮影時刻：<span id="p_capture_time_cam2">--:--:--</span><br>
+			<input type="button" value="最新画像を表示" onclick="still_camera_update(2, 0,)">
+	　　　　<input type="button" value="デバイス再起動" onclick="camera_device_reset_request(2)" ><br>
+			<input type="date" id="date_cam2"> <input type="time" step="1" id="time_cam2"> 
+			<input type="button" value="指定日時の画像" onclick="still_camera_update_with_date(2)"><br>
+			<div id="progressBar2" class="progress_bar"></div>
+			<p id="status2"></p><br>
+		</p>
+		<details>
+		<summary>Operating Time Details</summary>
+		<p>Lasted online : <span id="lasted_online_cam2"></span></p>
+		<p>Current Date Time: <span id="realDatetime_cam2"></span></p>
+		<p>Elapsed : <span id="elapsed_check_time_cam2"></span></p>
+		</details>
+
+	</div>
+</div><br>
+<div id="Realtime"></div>
+
+<h3>ライブ映像の取得</h3>
+<img id="live_cam"><br>
+<select id="live_camera_number">
+	<option value="1">カメラ１</option>
+	<option value="2">カメラ２</option>
+</select><br>
+<input type="button" value="動画の撮影" onclick="movie_camera_update()">　　
+<input type="button" value="もう一度再生" onclick="movie_camera_replay()" enabled="false">
+
+
+
+<script src="Chart.bundle.js"></script>
+<script src="./apiurl.js"></script>
+<script src="utility_functions.js"></script>
+<script>
+//set height and width of Canvass
+
+//1. 共通で使用する変数/定数
+	//グラフ表示用
+		//5s * 24個で120s=2分間のデータ表示が可能
+const monitor_update_period = 10000;	//データを取得し更新する間隔(ms)
+const monitor_data_count = 30;			//グラフに表示するデータ個数
+let graph_ip_monitor;					//電流・圧力を表示するグラフ
+let graph_tv_monitor;					//電圧・温度を表示するグラフ
+let monitor_voltage = [];				//グラフに表示するデータ（電源電圧）
+let monitor_current = [];				//グラフに表示するデータ（負荷電流）
+let monitor_pressure = [];				//グラフに表示するデータ（噴霧圧力）
+let monitor_temperature = [];			//グラフに表示するデータ（モータ温度）
+
+	//デバイスＩＤ
+let query_device_id = undefined;
+//Chart.jsに渡すグラフ表示用JSONのテンプレート
+	//電流、噴霧圧計測値
+let json_graph_ip_template = {
+	"type": "line",
+	"data":{
+		"labels": [0],
+		"datasets":[
+			{	"label": "モータ負荷電流[A]",
+				"data": [0.0],
+				"borderColor": "rgba(255,0,255,1)",
+				"backgroundColor": "rgba(0,0,0,0)",
+				"yAxisID":"current"
+			},
+			{	"label": "噴霧圧力[MPa]",
+				"data": [0.0],
+				"borderColor": "rgba(0,255,0,1)",
+				"backgroundColor": "rgba(0,0,0,0)",
+				"yAxisID":"pressure"
+			}
+		]
+	},
+	"options":{
+		"title": { "display": false },
+		"responsive": false,
+		"scales":{
+			"xAxes": [{
+				"display": true,
+				"scaleLabel": { "display": true, "labelString": "時間[s]", },
+				"ticks": { "maxTicksLimit": 5}
+			}],
+			"yAxes":[
+				{	"id": "current",
+					"display": true,
+					"scaleLabel":{"display": true, "labelString": "電流[A]" },
+					"ticks":{"suggestedMax": 25.0, "suggestedMin": 0, "stepSize": 5.0 }
+				},
+				{	"id": "pressure",
+					"dispay": true,
+					"scaleLabel":{"display": true, "labelString": "圧力[MPa]" },
+					"ticks":{"suggestedMax": 2.5, "suggestedMin": 0.0, "stepSize": 0.5 }
+				}
+			]
+		}
+	}
+};
+	//電圧、モータ温度計測値
+let json_graph_tv_template = {
+	"type": "line",
+	"data":{
+		"labels": [0],
+		"datasets":[
+			{	"label": "モータ温度[℃]",
+				"data": [0.0],
+				"borderColor": "rgba(0,0,255,1)",
+				"backgroundColor": "rgba(0,0,0,0)",
+				"yAxisID":"temperature"
+			},
+			{	"label": "電源電圧[V]",
+				"data": [0.0],
+				"borderColor": "rgba(255,0,0,1)",
+				"backgroundColor": "rgba(0,0,0,0)",
+				"yAxisID":"power_source"
+			}
+		]
+	},
+	"options":{
+		"title": { "display": false },
+		"responsive": false,
+		"scales":{
+			"xAxes": [{
+				"display": true,
+				"scaleLabel": { "display": true, "labelString": "時間[s]", },
+				"ticks": { "stepSize": 30.0}
+			}],
+			"yAxes":[
+				{	"id": "temperature",
+					"display": true,
+					"scaleLabel":{"display": true, "labelString": "温度[℃]" },
+					"ticks":{"suggestedMax": 100.0, "suggestedMin": 0.0, "stepSize": 20.0 }
+				},
+				{	"id": "power_source",
+					"dispay": true,
+					"scaleLabel":{"display": true, "labelString": "電圧[V]" },
+					"ticks":{"suggestedMax": 25.0, "suggestedMin": 0.0, "stepSize": 5.0 }
+				}
+			]
+		}
+	}
+};
+
+
+
+//2. 表示の更新
+	//2.1 グラフの更新 : 引数jsonにはdynamoDBのpayloadを渡すように
+function graph_update(json){
+	if(json === undefined) return;
+	//各計測データ配列に新しいデータ（jsonから）を追加し、古いデータを削除
+		//電源電圧
+	monitor_voltage.push(json.mV / 1000);
+	while(monitor_voltage.length > monitor_data_count) monitor_voltage.shift();
+		//負荷電流
+	monitor_current.push((json.mA>0)? (json.mA/1000) : 0.0);
+	while(monitor_current.length > monitor_data_count) monitor_current.shift();
+		//噴霧圧力
+	monitor_pressure.push((json.kPa>0)? (json.kPa/1000) : 0.0);
+	while(monitor_pressure.length > monitor_data_count) monitor_pressure.shift();
+		//モータ温度
+	monitor_temperature.push(json.cdeg_x10 / 10);
+	while(monitor_temperature.length > monitor_temperature) monitor_temperature.shift();
+		//X軸ラベル
+	let xlabels = [];
+	for(let i=0; i<monitor_data_count; i++)
+		xlabels.push( i*monitor_update_period/1000);
+	//テンプレートにX/Y軸のデータを与え表示を更新する
+		//電流・圧力グラフ
+	json_graph_ip_template.data.labels = xlabels;
+	json_graph_ip_template.data.datasets[0].data = monitor_current;
+	json_graph_ip_template.data.datasets[1].data = monitor_pressure;
+	graph_ip_monitor.update();
+		//電圧・温度グラフ
+	json_graph_tv_template.data.labels = xlabels;
+	json_graph_tv_template.data.datasets[0].data = monitor_temperature;
+	json_graph_tv_template.data.datasets[1].data = monitor_voltage;
+	graph_tv_monitor.update();
+}
+	//2.2 数値表示の更新 : 引数jsonにはdynamoDBのpayloadを渡すように
+function values_update(json){
+	if(json === undefined) return;
+	//CPU動作時間/アワメータ値
+	document.getElementById("p_live_time").innerHTML = json.secs;
+	document.getElementById("p_hour_meter").innerHTML = json.hours;
+	//電流/圧力
+	document.getElementById("p_motor_current").innerHTML = Math.round(json.mA/100)/10;
+	document.getElementById("p_spray_pressure").innerHTML = Math.round(json.kPa/100)/10;
+	//電圧/温度
+	document.getElementById("p_motor_temperature").innerHTML = json.cdeg_x10 / 10;
+	document.getElementById("p_battery_voltage").innerHTML = Math.round(json.mV/100)/10;
+}
+	//2.3 カメラ映像の表示 -> 3.2参照（関数化せずに直接表示しているため省略）
+
+	//2.4 動画の表示
+let movie_control_timer = undefined;
+let movie_data = undefined;
+function movie_camera_show_html(){
+	//データが空の場合は何もせず終了
+	if((movie_data === undefined)||(movie_data.frames.length <= 0)) return;
+	//タイマが動作していない場合は自身を定期的に呼び出すようにする
+	if(movie_control_timer === undefined){
+		//todo:フレームレートは現在10fps固定なので100msとしているが、将来的に変更された場合はここの数値をjsonから読み取る
+		movie_control_timer = setInterval(movie_camera_show_html, 100);
+		console.log('Movie play control timer started');
+	}
+	//画像の表示を更新する
+	document.getElementById("live_cam").src = 'data:image/jpeg;base64,' + movie_data.frames[ movie_data.current_frame++ ];
+	//フレームの最後を表示したら終了する
+	if(movie_data.frames.length <= movie_data.current_frame){
+		clearInterval(movie_control_timer);
+		movie_control_timer = undefined;
+		console.log("Movie play control timer stopped");
+	}
+}
+function movie_camera_replay(){
+	//まだ動画データが無い場合は何もせず終了
+	if(movie_data === undefined) return;
+	//データがある場合は再生位置を初期にして再生開始
+	movie_data.current_frame = 0;
+	movie_camera_show_html();
+}
+
+//3. 動的なデータの取得
+	//3.1 定期的にステータスを取得し、表示に反映させる
+let periodic_update_latest_data_timestamp;
+function periodic_update(){
+	update_by_ajaxdata(
+			ajax_url + '?deviceid=' + query_device_id + '&request=latest',
+			(json)=>{
+				//タイムスタンプが前回データから更新されている場合のみ表示に反映する
+				if(periodic_update_latest_data_timestamp !== json.body.timestamp){
+					values_update(json.body.payload);
+					graph_update(json.body.payload);
+				}
+				periodic_update_latest_data_timestamp = json.body.timestamp;
+			},
+			(err)=>{ console.log(err); }
+		);
+}
+
+	//3.2 カメラの映像を表示する
+let camera_data_polling_timer = undefined;
+let camera_data_polling_target = [];
+const camera_data_polling_period = 1000;	//ファイルの確認は1回/秒
+const camera_data_max_retry_count = 25;		//20回（20秒）でアップロードできなければタイムアウト
+//デバイスからサーバへの画像アップロード完了はポーリング処理によって確認する
+//（サーバはLambdaで処理しているのでcometとかを使うよりこちらの方がコストメリットがある）
+//todo:デバイスがオフラインなどで応答しない場合を考慮し、回数によるタイムアウトを設けたい
+function camera_data_polling(){
+	//登録されているファイルの確認と応答データの処理
+	for(let i=0; i<camera_data_polling_target.length; i++){
+		//指定の画像をダウンロードするためのURL
+		const url_request = ajax_url + '/cam'
+						 + '?deviceid=' + camera_data_polling_target[i].device_id
+						 + '&file=' + camera_data_polling_target[i].filename;
+		console.log(url_request);
+		//fetchによるダウンロードと処理
+		update_by_ajaxdata( url_request,
+				(json)=>{
+					//ダウンロード対象に画像データが含まれている場合は画像を表示してポーリングデータを削除
+					if(json.image !== undefined){
+						console.log('camera image data downloaded');
+						camera_data_polling_target[i].object.src = 'data:image/jpeg;base64,' + json.image;
+						camera_data_polling_target.splice(i, 1);
+					}
+					//todo:ダウンロード対象に動画データが含まれている場合はデータを再生用変数にコピーしてポーリングデータを削除
+					else if(json.frames !== undefined){
+						console.log('camera movie data downloaded (' + json.frames.length + 'frames)');
+						movie_data = json;
+						movie_data.current_frame = 0;
+						camera_data_polling_target.splice(i, 1);
+						movie_camera_show_html();
+					}
+					//それ以外はリトライカウントを減らし、ゼロになったらポーリングデータデータを除外する
+					else{
+						console.log('camera image is not exist on ther server yet.');
+						if(--(camera_data_polling_target[i].retry) <= 0){
+							camera_data_polling_target.splice(i, 1);
+							console.log('polling count timeout. tired to download');
+						}
+					}
+				},
+				(err)=>{ console.log(err); }
+			);
+	}
+	//登録されているファイルの処理が全て完了したらファイルを停止する
+	if(camera_data_polling_target.length <= 0){
+		clearInterval(camera_data_polling_timer);
+		camera_data_polling_timer = undefined;
+		console.log("Download polling process finished");
+	}
+}
+
+function camera_device_id(cam_number){
+	//試験用途なのでカメラデバイスの固有IDはハードコーディングで対応する
+	return 'camera_test_000' + cam_number;
+}
+	//デバイスに対して最新のファイルをアップロードする要求をサーバに発行させるための処理
+function still_camera_update(cam_number, timestamp){
+	//get current date time
+	var realDatetime;						//current datetime 
+	var current_dt = new Date();			//get current datetime
+	var realDatetime_h = current_dt.getHours();	//get current datetime in hours
+	var realDatetime_m = current_dt.getMinutes(); //get current datetime in minutes
+	var realDatetime_s = current_dt.getSeconds(); //get current datetime in seconds
+	var realDatetime_date = current_dt.getDate(); //get current datetime in date
+	var realDatetime_month = current_dt.getMonth(); //get current datetime in date
+	var realDatetime_year = current_dt.getFullYear(); //get current datetime in date
+
+
+	//カメラ番号により表示先を設定する
+	let img_element;
+	let text_date_element;
+	
+	
+	if(cam_number===1){
+		
+		img_element = document.getElementById("cam1img");
+		text_date_element = document.getElementById("p_capture_time_cam1");
+		var progress = document.getElementById("progressBar1");
+		document.getElementById("status1").innerHTML = "Downloading"; 	// show status Downloading after click button cam1 
+		// progress bar for cam1 > download action for 9 sec
+		progress.style.width = "100%";
+		// PHP Version:
+		// progress.style.width = "<?php echo $progressPercentage; ?>";
+		progress.style.backgroundColor = "green";
+			setTimeout(
+				function(){
+				//alert("finish");
+				progress.style.width = "1%";
+				document.getElementById("status1").innerHTML = "完了";
+				}
+			,9000);
+	}else if(cam_number===2){
+		img_element = document.getElementById("cam2img");
+		text_date_element = document.getElementById("p_capture_time_cam2");
+		document.getElementById("status2").innerHTML = "Downloading"; 
+		var progress = document.getElementById("progressBar2");	// show status Downloading after click button  cam2
+		// progress bar for cam2 > download action for 9 sec
+		progress.style.width = "100%";
+		// PHP Version:
+		// progress.style.width = "<?php echo $progressPercentage; ?>";
+		progress.style.backgroundColor = "green";
+			setTimeout(
+				function(){
+				//alert("finish");
+				progress.style.width = "1%";
+				document.getElementById("status2").innerHTML = "完了";
+				}
+			,9000);	
+	}
+	//デバイスの最新画像のアップロード要求発行URL
+	console.log(timestamp);
+	const device_id = camera_device_id(cam_number);
+	let url_request = ajax_url + '/cam?deviceid=' + device_id;
+	if(timestamp > 0) url_request += '&logstart=' + timestamp;
+	console.log(url_request);
+	//fetchによる要求とアップロードが完了するまでの処理を登録
+	update_by_ajaxdata( url_request,
+			(json)=>{
+				if(json.filename === undefined){
+					console.log('最新のカメラ映像要求の応答にエラーあり');
+					console.log(json);
+				}else{
+					//画像のダウンロードに先行して撮影した日付を表示する
+					const dateTime = new Date(json.timestamp);
+					text_date_element.innerHTML = dateTime.toLocaleDateString() + ' ' + dateTime.toLocaleTimeString('ja-JP');
+					//サーバへのファイル問い合わせを行うポーリング処理へデータ登録
+					const polling_data = {
+						"filename" : json.filename,
+						"device_id" : device_id,
+						"retry": camera_data_max_retry_count,
+						"object": img_element
+					};
+
+					//check device online-offline						
+					// show status online-offline
+					if(cam_number === 1){
+						//get lasted date time of online device
+						var lasted_online_check_h_cam1 = dateTime.getHours();
+						var lasted_online_check_m_cam1 = dateTime.getMinutes();
+						var lasted_online_check_s_cam1 = dateTime.getSeconds();
+						var lasted_online_check_date_cam1 = dateTime.getDate();
+						var lasted_online_check_month_cam1 = dateTime.getMonth();
+						var lasted_online_check_year_cam1 = dateTime.getFullYear();
+						lasted_online_check_m_cam1 = checkTime(lasted_online_check_m_cam1);
+						lasted_online_check_s_cam1 = checkTime(lasted_online_check_s_cam1);
+						//document.getElementById('lasted_cap').innerHTML = 
+						function checkTime(i) {
+						if (i < 10) {i = "0" + i};  // add zero in front of numbers < 10
+						return i;
+						}
+					//get time difference between two date time of cam1
+					var elapsed_time_h_cam1 = realDatetime_h - lasted_online_check_h_cam1 ; // difference between two timestamps in hours 
+					var elapsed_time_m_cam1  = realDatetime_m - lasted_online_check_m_cam1 ; // difference between two timestamps in minutes
+					var elapsed_time_s_cam1  = realDatetime_s - lasted_online_check_s_cam1 ; // difference between two timestamps in seconds
+					var elapsed_time_date_cam1 = realDatetime_date - lasted_online_check_date_cam1 ; // difference between two timestamps in seconds
+					var elapsed_time_month_cam1 = realDatetime_month - lasted_online_check_month_cam1 ; // difference between two timestamps in seconds
+					var elapsed_time_year_cam1 = realDatetime_year - lasted_online_check_year_cam1 ; // difference between two timestamps in seconds
+						document.getElementById("lasted_online_cam1").innerHTML = 
+						lasted_online_check_year_cam1 + "/" + lasted_online_check_month_cam1 + "/" + lasted_online_check_date_cam1 + "-" + lasted_online_check_h_cam1 + ":" + lasted_online_check_m_cam1 + ":" + lasted_online_check_s_cam1;
+						document.getElementById("realDatetime_cam1").innerHTML = 
+						realDatetime_year  + "/" + realDatetime_month + "/" + realDatetime_date + "-" + realDatetime_h + ":" + realDatetime_m + ":" + realDatetime_s;
+						document.getElementById("elapsed_check_time_cam1").innerHTML = 
+						elapsed_time_year_cam1   + "Y " + elapsed_time_month_cam1 + "M " + elapsed_time_date_cam1 + "D   " + elapsed_time_h_cam1 + "hr " + elapsed_time_m_cam1 + "min " + elapsed_time_s_cam1 + "sec";
+					}		
+						if (elapsed_time_year_cam1 == 0 && elapsed_time_month_cam1 == 0 && elapsed_time_date_cam1 == 0 && elapsed_time_h_cam1 < 1 && elapsed_time_m_cam1  < 1 && elapsed_time_s_cam1 < 20 ){ 
+							document.getElementById("offline_online_cam1").classList.add('indicator_online');//put indicator online
+							document.getElementById("elapsed_check_status_cam1").innerHTML = "ONLINE";	
+							}else if (cam_number===1) {
+								document.getElementById("elapsed_check_status_cam1").innerHTML = "OFFLINE";
+							}
+					
+					if(cam_number === 2){
+						//get lasted date time of online device
+						var lasted_online_check_h_cam2 = dateTime.getHours();
+						var lasted_online_check_m_cam2 = dateTime.getMinutes();
+						var lasted_online_check_s_cam2 = dateTime.getSeconds();
+						var lasted_online_check_date_cam2 = dateTime.getDate();
+						var lasted_online_check_month_cam2 = dateTime.getMonth();
+						var lasted_online_check_year_cam2 = dateTime.getFullYear();
+						lasted_online_check_m_cam2 = checkTime(lasted_online_check_m_cam2);
+						lasted_online_check_s_cam2 = checkTime(lasted_online_check_s_cam2);
+						//document.getElementById('lasted_cap').innerHTML = 
+						function checkTime(i) {
+						if (i < 10) {i = "0" + i};  // add zero in front of numbers < 10
+						return i;
+						}	
+					//get time difference between two date time of cam2
+					var elapsed_time_h_cam2 = realDatetime_h - lasted_online_check_h_cam2 ; // difference between two timestamps in hours 
+					var elapsed_time_m_cam2  = realDatetime_m - lasted_online_check_m_cam2 ; // difference between two timestamps in minutes
+					var elapsed_time_s_cam2  = realDatetime_s - lasted_online_check_s_cam2 ; // difference between two timestamps in seconds
+					var elapsed_time_date_cam2 = realDatetime_date - lasted_online_check_date_cam2 ; // difference between two timestamps in seconds
+					var elapsed_time_month_cam2 = realDatetime_month - lasted_online_check_month_cam2 ; // difference between two timestamps in seconds
+					var elapsed_time_year_cam2 = realDatetime_year - lasted_online_check_year_cam2 ; // difference between two timestamps in seconds
+						document.getElementById("lasted_online_cam2").innerHTML = 
+						lasted_online_check_year_cam2 + "/" + lasted_online_check_month_cam2 + "/" + lasted_online_check_date_cam2 + "-" + lasted_online_check_h_cam2 + ":" + lasted_online_check_m_cam2 + ":" + lasted_online_check_s_cam2;
+						document.getElementById("realDatetime_cam2").innerHTML = 
+						realDatetime_year  + "/" + realDatetime_month + "/" + realDatetime_date + "-" + realDatetime_h + ":" + realDatetime_m + ":" + realDatetime_s;
+						document.getElementById("elapsed_check_time_cam2").innerHTML = 
+						elapsed_time_year_cam2 + "Y " + elapsed_time_month_cam2 + "M " + elapsed_time_date_cam2 + "D   " + elapsed_time_h_cam2 + "hr " + elapsed_time_m_cam2 + "min " + elapsed_time_s_cam2 + "sec";
+					}		
+						if (elapsed_time_year_cam2 == 0 && elapsed_time_month_cam2 == 0 && elapsed_time_date_cam2 == 0 && elapsed_time_h_cam2 < 1 && elapsed_time_m_cam2 < 1 && elapsed_time_s_cam2 < 20 ){ 
+							document.getElementById("offline_online_cam2").classList.add('indicator_online');	//put indicator online
+							document.getElementById("elapsed_check_status_cam2").innerHTML = "ONLINE";	
+							}else if (cam_number===2){
+								document.getElementById("elapsed_check_status_cam2").innerHTML = "OFFLINE";
+							}
+					
+					
+					
+
+//todo:アップロードはすぐに始まらないのでsetTimeoutで登録を遅らせる
+//	その間プログレスバーとかで待ち時間を表示させるといいかもしれない
+					camera_data_polling_target.push(polling_data);
+					//ポーリング処理が動作していなければ始動する
+					if(camera_data_polling_timer === undefined){
+						camera_data_polling_timer = setInterval(camera_data_polling, camera_data_polling_period);
+						console.log('Download polling process started');
+					}
+				}
+			},
+			(err)=>{ console.log(err); }
+		);
+}
+
+function still_camera_update_with_date(cam_number){
+	const to_utc = -9*3600*1000;
+	let date_edit;
+	let time_edit;
+	if(cam_number===1){
+		date_edit = document.getElementById("date_cam1");
+		time_edit = document.getElementById("time_cam1");
+	}else if(cam_number===2){
+		date_edit = document.getElementById("date_cam2");
+		time_edit =document. getElementById("time_cam2");
+	}
+	const timestamp = date_edit.valueAsNumber + time_edit.valueAsNumber + to_utc;
+	still_camera_update(cam_number, timestamp);
+
+}
+
+function camera_device_reset_request(cam_number){
+	alert('動作未確認なので運が良ければ再起動されます');
+	const device_id = camera_device_id(cam_number);
+	const url_reset = ajax_url + '/camreset?deviceid=' + device_id;
+	update_by_ajaxdata( url_reset,
+			(json)=>{console.log(json);},
+			(err)=>{console.log(err);}
+			);
+}
+
+	//3.3 セレクトで選択されているカメラ番号を元にAjaxデータを送信し、返り値で動画映像のURLを取得する
+async function movie_camera_update(){
+	//動画撮影のリクエストを送信
+	const cam = Number(document.getElementById("live_camera_number").value);
+	const device_id = camera_device_id(cam);
+	const url_request = ajax_url + '/cam?deviceid=' + device_id + '&command=live';
+	console.log(url_request);
+	//fetchによる動画撮影要求とアップロードが完了するまでの処理を登録
+	update_by_ajaxdata( url_request,
+			(json)=>{
+				if(json.filename === undefined){
+					console.log('動画撮影要求の応答にエラーあり');
+					console.log(json);
+				}else{
+					//サーバへのファイル問い合わせを行うポーリング処理へデータ登録
+					const polling_data = {
+						"filename" : json.filename,
+						"device_id": device_id,
+						"retry": camera_data_max_retry_count,
+						"object": document.getElementById("live_cam")
+					};
+//撮影、アップロードはパイプライン処理されないため、撮影時間＋α経過してからポーリングを実行する
+					const wait_time_ms = 15000;		//とりあえず15秒
+					setTimeout(()=>{
+							camera_data_polling_target.push(polling_data);
+							if(camera_data_polling_timer === undefined){
+								camera_data_polling_timer = setInterval(camera_data_polling, camera_data_polling_period);
+								console.log('Download polling process started');
+							}
+						}, wait_time_ms);
+				}
+			},
+			(err)=>{ console.log(err); }
+		);
+}
+
+
+	//3.4 グラフの初回データを取得する
+function initial_graphdata_update(){
+	update_by_ajaxdata(
+			//Lambda - GazerFrontend / _TESTに生データを複数返す処理を追加する必要がある
+			ajax_url + '?deviceid=' + query_device_id + '&request=nlatest',
+			(json)=>{
+				//意図したデータが含まれていない場合はコンソールに内容を表示する
+				if(json.body.Items === undefined) console.log(json);
+				//正常な場合はデータをグラフ用配列に追加する
+				else for(let i=0; i<json.body.Items.length; i++) graph_update(json.body.Items[i].payload);
+			},
+			(err)=>{ console.log(err); }
+		);
+}
+
+//4. HTMLロード時に実行する処理
+	//4.1 クエリから対象とするデバイスIDを取得する
+query_device_id = get_deviceid_from_url();
+	//4.2 グラフデータの初期値を設定する
+graph_ip_monitor = new Chart(document.getElementById("graph1"), json_graph_ip_template);
+graph_tv_monitor = new Chart(document.getElementById("graph2"), json_graph_tv_template);
+initial_graphdata_update();
+	//4.3 カメラ画像の最新データを取得する
+still_camera_update(1, 0);
+still_camera_update(2, 0);
+	//4.4 定期的な更新処理を登録する
+setInterval(periodic_update, monitor_update_period);
+	//4.5 正常に処理されたことを示すために冒頭のHTML文をクリアする
+document.getElementById("p_function_available").innerHTML = '';
+
+//show realtime
+function startTime() {
+  var today = new Date();
+  var h = today.getHours();
+  var m = today.getMinutes();
+  var s = today.getSeconds();
+  m = checkTime(m);
+  s = checkTime(s);
+  document.getElementById('Realtime').innerHTML =
+  h + ":" + m + ":" + s;
+  var t = setTimeout(startTime, 500);
+}
+function checkTime(i) {
+  if (i < 10) {i = "0" + i};  // add zero in front of numbers < 10
+  return i;
+}
+
+
+
+
+
+
+</script>
+
+</body>
+</html>
